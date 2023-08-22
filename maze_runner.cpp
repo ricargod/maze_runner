@@ -39,9 +39,12 @@ std::stack<pos_t> valid_positions;
 pos_t load_maze(const char* file_name) {
 	pos_t initial_pos;
 	// Abre o arquivo para leitura (fopen)
+	FILE * arq;
+  	arq = fopen(file_name, "r");
 
-	// Le o numero de linhas e colunas (fscanf) 
+	// Le o numero de linhas e colunas (fscanf)
 	// e salva em num_rows e num_cols
+	fscanf(arq,"%d %d",&num_rows,&num_cols);
 
 	// Aloca a matriz maze (malloc)
 	for (int i = 0; i < num_rows; ++i)
@@ -51,6 +54,11 @@ pos_t load_maze(const char* file_name) {
 		for (int j = 0; j < num_cols; ++j) {
 			// Le o valor da linha i+1,j do arquivo e salva na posição maze[i][j]
 			// Se o valor for 'e' salvar o valor em initial_pos
+			fscanf(arq,"%c",&maze[i][j]);
+			if (maze[i][j]=='e') {
+				initial_pos.i=i;
+				initial_pos.j=j;
+			}
 		}
 	}
 	return initial_pos;
