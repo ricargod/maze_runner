@@ -53,9 +53,7 @@ bool walk(pos_t pos) {
         pos_t position = valid_positions.top();
         valid_positions.pop();
 
-        maze[position.i][position.j] = 'o';
-
-        #include <iostream> 
+        std::system("cls"); 
         print_maze();
 
 
