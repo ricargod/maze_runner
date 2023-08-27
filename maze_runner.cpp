@@ -42,6 +42,7 @@ void print_maze() {
         }
         printf("\n");
     }
+    printf("\n");
 }
 
 bool walk(pos_t pos) {
@@ -55,6 +56,8 @@ bool walk(pos_t pos) {
 
         system("cls");  
         print_maze();
+        printf("a");
+
 
 
         pos_t next_positions[4] = {
@@ -87,9 +90,9 @@ int main(int argc, char* argv[]) {
     bool exit_found = walk(initial_pos);
 
     if (exit_found) {
-        printf("Saída encontrada!\n");
+        printf("Saida encontrada!\n");
     } else {
-        printf("Não foi encontrada a saída.\n");
+        printf("Não foi encontrada a saida.\n");
     }
 
     // Free allocated memory
