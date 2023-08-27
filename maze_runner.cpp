@@ -80,18 +80,17 @@ bool walk(pos_t pos) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("Usage: %s <maze_file>\n", argv[0]);
         return 1;
     }
 
     pos_t initial_pos = load_maze(argv[1]);
     bool exit_found = walk(initial_pos);
 
-    /*if (exit_found) {
-        printf("Exit found!\n");
+    if (exit_found) {
+        printf("Saída encontrada!\n");
     } else {
-        printf("No path to the exit found.\n");
-    }*/
+        printf("Não foi encontrada a saída.\n");
+    }
 
     // Free allocated memory
     for (int i = 0; i < num_rows; ++i) {
