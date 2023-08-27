@@ -70,6 +70,7 @@ bool walk(pos_t pos) {
             if (next_positions[k].i >= 0 && next_positions[k].i < num_rows && next_positions[k].j >= 0 && next_positions[k].j < num_cols && maze[next_positions[k].i][next_positions[k].j] != '#' && maze[next_positions[k].i][next_positions[k].j] != 'o') {
                 if (maze[next_positions[k].i][next_positions[k].j] == 's') {
             		return true;
+                    break;
         		}
 				valid_positions.push(next_positions[k]);
                 maze[next_positions[k].i][next_positions[k].j] = 'o';
