@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stack>
 #include <stdlib.h>
+#include <iostream>
 
 char** maze;
 int num_rows;
@@ -54,7 +55,7 @@ bool walk(pos_t pos) {
 
         maze[position.i][position.j] = 'o';
 
-        system("cls");  
+        #include <iostream> 
         print_maze();
 
 
