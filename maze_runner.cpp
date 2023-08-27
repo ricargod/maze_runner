@@ -53,7 +53,7 @@ bool walk(pos_t pos) {
         pos_t position = valid_positions.top();
         valid_positions.pop();
 
-        std::system("cls"); 
+        std::system("clear"); 
         print_maze();
 
 
