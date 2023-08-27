@@ -56,7 +56,6 @@ bool walk(pos_t pos) {
 
         system("cls");  
         print_maze();
-        printf("a");
 
 
 
