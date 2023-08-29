@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stack>
 #include <stdlib.h>
-#include <iostream>
+#include <thread>       
+#include <chrono>  
 
 char** maze;
 int num_rows;
@@ -12,8 +13,9 @@ struct pos_t {
     int j;
 };
 
-std::stack<pos_t> valid_positions;
+std::stack<pos_t> valid_positions; //pilha para armazerar as posiçoes validas
 
+//função para ler o labirinto do arquivo e armazenar na matriz e retornar a posição inicial
 pos_t load_maze(const char* file_name) {
     pos_t initial_pos;
     FILE* arq;
@@ -43,21 +45,29 @@ void print_maze() {
         }
         printf("\n");
     }
-    printf("\n");
 }
 
+//funçao para percorrer o labirinto
 bool walk(pos_t pos) {
     valid_positions.push(pos);
 
     while (!valid_positions.empty()) {
         pos_t position = valid_positions.top();
         valid_positions.pop();
-
-        std::cout << "\033[2J\033[1;1H";
+        
+        //maze[position.i][position.j] = 'o';
+        
+        
+        system("clear");  
         print_maze();
+        
+        //loop para criar delay de 50ms entre as impressoes do labirinto atualizado
+        auto start_time = std::chrono::high_resolution_clock::now();
+        while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count() < 50) {
+            // Loop vazio
+        }
 
-
-
+        //vetor com as 4 posições em volta da atual
         pos_t next_positions[4] = {
             {position.i + 1, position.j},
             {position.i - 1, position.j},
@@ -65,15 +75,17 @@ bool walk(pos_t pos) {
             {position.i, position.j - 1}
         };
 
+        //percorre as 4 posiçoes, verifica se estao no labirinto, e se são validas.
         for (int k = 0; k < 4; ++k) {
-
-            if (next_positions[k].i >= 0 && next_positions[k].i < num_rows && next_positions[k].j >= 0 && next_positions[k].j < num_cols && maze[next_positions[k].i][next_positions[k].j] != '#' && maze[next_positions[k].i][next_positions[k].j] != 'o') {
+            if (next_positions[k].i >= 0 && next_positions[k].i < num_rows && next_positions[k].j >= 0 && next_positions[k].j < num_cols && maze[next_positions[k].i][next_positions[k].j] != '#' && maze[next_positions[k].i][next_positions[k].j] != '.') {
+				//caso seja valida, verifica se é a saida
                 if (maze[next_positions[k].i][next_positions[k].j] == 's') {
-            		return true;
-                    break;
-        		}
-				valid_positions.push(next_positions[k]);
-                maze[next_positions[k].i][next_positions[k].j] = 'o';
+                    maze[next_positions[k].i][next_positions[k].j] = 'o';
+                    return true;
+                }
+                //se nao fora saida, salva na pilha e marca a posição como ja navegada
+                valid_positions.push(next_positions[k]);
+                maze[next_positions[k].i][next_positions[k].j] = '.';
             }
         }
     }
@@ -82,6 +94,7 @@ bool walk(pos_t pos) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
+        printf("Usage: %s <maze_file>\n", argv[0]);
         return 1;
     }
 
@@ -89,9 +102,9 @@ int main(int argc, char* argv[]) {
     bool exit_found = walk(initial_pos);
 
     if (exit_found) {
-        printf("Saida encontrada!\n");
+        printf("Saída Encontrada!\n");
     } else {
-        printf("Não foi encontrada a saida.\n");
+        printf("Saida não encontrada.\n");
     }
 
     // Free allocated memory
