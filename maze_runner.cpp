@@ -1,21 +1,21 @@
-#include <stdio.h>
+#include <iostream>
+#include <thread>
+#include <vector>
 #include <stack>
-#include <stdlib.h>
-#include <thread>       
-#include <chrono>  
+#include <mutex>
 
 char** maze;
 int num_rows;
 int num_cols;
+std::mutex mtx;
 
 struct pos_t {
     int i;
     int j;
 };
 
-std::stack<pos_t> valid_positions; //pilha para armazerar as posiçoes validas
+std::stack<pos_t> valid_positions;
 
-//função para ler o labirinto do arquivo e armazenar na matriz e retornar a posição inicial
 pos_t load_maze(const char* file_name) {
     pos_t initial_pos;
     FILE* arq;
@@ -27,7 +27,7 @@ pos_t load_maze(const char* file_name) {
     for (int i = 0; i < num_rows; ++i) {
         maze[i] = new char[num_cols];
         for (int j = 0; j < num_cols; ++j) {
-            fscanf(arq, " %c", &maze[i][j]); 
+            fscanf(arq, " %c", &maze[i][j]);
             if (maze[i][j] == 'e') {
                 initial_pos.i = i;
                 initial_pos.j = j;
@@ -41,33 +41,36 @@ pos_t load_maze(const char* file_name) {
 void print_maze() {
     for (int i = 0; i < num_rows; ++i) {
         for (int j = 0; j < num_cols; ++j) {
-            printf("%c", maze[i][j]);
+            std::cout << maze[i][j];
         }
-        printf("\n");
+        std::cout << std::endl;
     }
+    std::cout << std::endl;
 }
 
-//funçao para percorrer o labirinto
-bool walk(pos_t pos) {
+bool explore(pos_t pos) {
+    mtx.lock();
     valid_positions.push(pos);
-
+    mtx.unlock();
+    print_maze();
     while (!valid_positions.empty()) {
-        pos_t position = valid_positions.top();
-        valid_positions.pop();
-        
-        //maze[position.i][position.j] = 'o';
-        
-        
-        system("clear");  
-        print_maze();
-        
-        //loop para criar delay de 50ms entre as impressoes do labirinto atualizado
-        auto start_time = std::chrono::high_resolution_clock::now();
-        while (std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - start_time).count() < 50) {
-            // Loop vazio
+        pos_t position;
+        mtx.lock();
+        if (!valid_positions.empty()) {
+            position = valid_positions.top();
+            valid_positions.pop();
+        } else {
+            mtx.unlock();
+            continue;
+        }
+        mtx.unlock();
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate exploration time
+
+        if (maze[position.i][position.j] == 's') {
+            return true;
         }
 
-        //vetor com as 4 posições em volta da atual
         pos_t next_positions[4] = {
             {position.i + 1, position.j},
             {position.i - 1, position.j},
@@ -75,18 +78,24 @@ bool walk(pos_t pos) {
             {position.i, position.j - 1}
         };
 
-        //percorre as 4 posiçoes, verifica se estao no labirinto, e se são validas.
+        std::vector<std::thread> threads;
+
         for (int k = 0; k < 4; ++k) {
-            if (next_positions[k].i >= 0 && next_positions[k].i < num_rows && next_positions[k].j >= 0 && next_positions[k].j < num_cols && maze[next_positions[k].i][next_positions[k].j] != '#' && maze[next_positions[k].i][next_positions[k].j] != '.') {
-				//caso seja valida, verifica se é a saida
-                if (maze[next_positions[k].i][next_positions[k].j] == 's') {
-                    maze[next_positions[k].i][next_positions[k].j] = 'o';
+            int i = next_positions[k].i;
+            int j = next_positions[k].j;
+
+            if (i >= 0 && i < num_rows && j >= 0 && j < num_cols && maze[i][j] != '#' && maze[i][j] != 'o') {
+                if (maze[i][j] == 's') {
+                    std::cout << "Saida!" << std::endl;
                     return true;
                 }
-                //se nao fora saida, salva na pilha e marca a posição como ja navegada
-                valid_positions.push(next_positions[k]);
-                maze[next_positions[k].i][next_positions[k].j] = '.';
+                maze[i][j] = 'o';
+                threads.emplace_back(explore, next_positions[k]);
             }
+        }
+
+        for (std::thread& t : threads) {
+            t.join(); // Wait for all child threads to finish exploration
         }
     }
     return false;
@@ -94,17 +103,17 @@ bool walk(pos_t pos) {
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
-        printf("Usage: %s <maze_file>\n", argv[0]);
         return 1;
     }
 
     pos_t initial_pos = load_maze(argv[1]);
-    bool exit_found = walk(initial_pos);
+
+    bool exit_found = explore(initial_pos);
 
     if (exit_found) {
-        printf("Saída Encontrada!\n");
+        std::cout << "Saida encontrada!" << std::endl;
     } else {
-        printf("Saida não encontrada.\n");
+        std::cout << "Não foi encontrada a saida." << std::endl;
     }
 
     // Free allocated memory
