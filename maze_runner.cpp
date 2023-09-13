@@ -1,21 +1,22 @@
-#include <iostream>
-#include <thread>
-#include <vector>
+#include <stdio.h>
 #include <stack>
-#include <mutex>
+#include <stdlib.h>
+#include <thread>       
+#include <chrono>  
 
 char** maze;
 int num_rows;
 int num_cols;
-std::mutex mtx;
 
 struct pos_t {
     int i;
     int j;
 };
 
-std::stack<pos_t> valid_positions;
+bool exit_found = false;
 
+
+//função para ler o labirinto do arquivo e armazenar na matriz e retornar a posição inicial
 pos_t load_maze(const char* file_name) {
     pos_t initial_pos;
     FILE* arq;
@@ -27,7 +28,7 @@ pos_t load_maze(const char* file_name) {
     for (int i = 0; i < num_rows; ++i) {
         maze[i] = new char[num_cols];
         for (int j = 0; j < num_cols; ++j) {
-            fscanf(arq, " %c", &maze[i][j]);
+            fscanf(arq, " %c", &maze[i][j]); 
             if (maze[i][j] == 'e') {
                 initial_pos.i = i;
                 initial_pos.j = j;
@@ -41,36 +42,24 @@ pos_t load_maze(const char* file_name) {
 void print_maze() {
     for (int i = 0; i < num_rows; ++i) {
         for (int j = 0; j < num_cols; ++j) {
-            std::cout << maze[i][j];
+            printf("%c", maze[i][j]);
         }
-        std::cout << std::endl;
+        printf("\n");
     }
-    std::cout << std::endl;
 }
 
-bool explore(pos_t pos) {
-    mtx.lock();
+//funçao para percorrer o labirinto
+void walk(pos_t pos) {
+    std::stack<pos_t> valid_positions; //pilha para armazerar as posiçoes validas
     valid_positions.push(pos);
-    mtx.unlock();
-    print_maze();
+
     while (!valid_positions.empty()) {
-        pos_t position;
-        mtx.lock();
-        if (!valid_positions.empty()) {
-            position = valid_positions.top();
-            valid_positions.pop();
-        } else {
-            mtx.unlock();
-            continue;
-        }
-        mtx.unlock();
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulate exploration time
-
-        if (maze[position.i][position.j] == 's') {
-            return true;
-        }
-
+        pos_t position = valid_positions.top();
+        valid_positions.pop();
+        maze[position.i][position.j]='o';
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        maze[position.i][position.j]='.';
+        //vetor com as 4 posições em volta da atual
         pos_t next_positions[4] = {
             {position.i + 1, position.j},
             {position.i - 1, position.j},
@@ -78,42 +67,60 @@ bool explore(pos_t pos) {
             {position.i, position.j - 1}
         };
 
-        std::vector<std::thread> threads;
-
+        //percorre as 4 posiçoes, verifica se estao no labirinto, e se são validas.
         for (int k = 0; k < 4; ++k) {
-            int i = next_positions[k].i;
-            int j = next_positions[k].j;
-
-            if (i >= 0 && i < num_rows && j >= 0 && j < num_cols && maze[i][j] != '#' && maze[i][j] != 'o') {
-                if (maze[i][j] == 's') {
-                    std::cout << "Saida!" << std::endl;
-                    return true;
+            if (next_positions[k].i >= 0 && next_positions[k].i < num_rows && next_positions[k].j >= 0 && next_positions[k].j < num_cols && maze[next_positions[k].i][next_positions[k].j] != '#' && maze[next_positions[k].i][next_positions[k].j] != '.') {
+				//caso seja valida, verifica se é a saida
+                if (maze[next_positions[k].i][next_positions[k].j] == 's') {
+                    maze[next_positions[k].i][next_positions[k].j] = 'o';
+                    exit_found=true;
                 }
-                maze[i][j] = 'o';
-                threads.emplace_back(explore, next_positions[k]);
+                //se nao fora saida, salva na pilha e marca a posição como ja navegada
+                valid_positions.push(next_positions[k]);
+                maze[next_positions[k].i][next_positions[k].j] = '.';
             }
         }
-
-        for (std::thread& t : threads) {
-            t.join(); // Wait for all child threads to finish exploration
+        // if (valid_positions.size()==1){
+        //     position= valid_positions.top();
+        // }else
+        if (valid_positions.size()==2){
+            std::thread t1(walk,valid_positions.top());
+            t1.detach();
+            valid_positions.pop();
+        }else
+        if (valid_positions.size()==3){
+            std::thread t2(walk,valid_positions.top());
+            t2.detach();
+            valid_positions.pop();
+            std::thread t3(walk,valid_positions.top());
+            t3.detach();
+            valid_positions.pop();
         }
     }
-    return false;
 }
 
 int main(int argc, char* argv[]) {
     if (argc < 2) {
+        printf("Usage: %s <maze_file>\n", argv[0]);
         return 1;
     }
 
     pos_t initial_pos = load_maze(argv[1]);
+    
+    std::thread t(walk, initial_pos);
+    t.detach();
 
-    bool exit_found = explore(initial_pos);
+    while(!exit_found){
+        print_maze();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        system("clear");
+    }
+    print_maze();
 
     if (exit_found) {
-        std::cout << "Saida encontrada!" << std::endl;
+        printf("Saída Encontrada!\n");
     } else {
-        std::cout << "Não foi encontrada a saida." << std::endl;
+        printf("Saida não encontrada.\n");
     }
 
     // Free allocated memory
